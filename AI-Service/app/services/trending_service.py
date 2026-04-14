@@ -7,7 +7,7 @@ from app.database import get_collection
 
 load_dotenv()
 
-SERP_API_KEY = "656bfb6986fcde98e7f8552a478a50f98ef299c93b88b1abbc03b4692ec0d1e0"
+SERP_API_KEY = "<API_KEY>"
 SERP_BASE_URL = "https://serpapi.com/search.json"
 
 CATEGORIES = {

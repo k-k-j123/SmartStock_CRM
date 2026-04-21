@@ -4,8 +4,9 @@ import { useState } from "react";
 import StatCard from "@/components/StatCard";
 import ProductCard from "@/components/ProductCard";
 import CustomerMessage from "@/components/CustomerMessage";
-import TrendingCategory from "@/components/TrendingCategory";
-import { useProducts, useLowStockProducts, useTrending } from "@/hooks/use-api";
+import { useProducts, useLowStockProducts } from "@/hooks/use-api";
+import CreateCustomerDialog from "@/components/CreateCustomerDialog";
+import CreateSaleDialog from "@/components/CreateSaleDialog";
 
 const fakeMessages = [
   { name: "Rahul Sharma", message: "Great service! Will visit again soon. 🤝", date: "Mar, 12" },
@@ -17,7 +18,6 @@ const fakeMessages = [
 export default function DashboardPage() {
   const { data: products = [] } = useProducts();
   const { data: lowStock = [] } = useLowStockProducts();
-  const { data: trendingData = {} } = useTrending();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const totalProducts = products.length;
@@ -39,10 +39,12 @@ export default function DashboardPage() {
                 <StatCard value={totalProducts} label="Total Products" />
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <p className="mr-4 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <p className="mr-2 text-sm text-muted-foreground">
                 {format(new Date(), "MMMM, dd")}
               </p>
+              <CreateSaleDialog triggerClassName="rounded-xl" />
+              <CreateCustomerDialog triggerClassName="rounded-xl" />
               <button
                 onClick={() => setViewMode("list")}
                 className={`rounded-lg p-2 ${viewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground"}`}

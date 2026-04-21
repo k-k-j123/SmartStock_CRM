@@ -81,7 +81,13 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...options?.headers },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+  const contentType = res.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return res.json();
+  }
+
+  return (await res.text()) as T;
 }
 
 // Customer API
@@ -93,6 +99,8 @@ export const customerApi = {
     apiFetch<string>(`${API_BASE}/api/customer`, { method: "POST", body: JSON.stringify(data) }),
   update: (id: string, data: Partial<Customer>) =>
     apiFetch<string>(`${API_BASE}/api/customer/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  sendMail: (id: string) =>
+    apiFetch<string>(`${API_BASE}/api/customer/${id}/sendMail`, { method: "POST" }),
 };
 
 // Product API

@@ -1,26 +1,22 @@
-import { useState } from "react";
-import { useCustomers, useCreateCustomer } from "@/hooks/use-api";
+import { useCustomers, useSendCustomerMail } from "@/hooks/use-api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, Mail, Phone } from "lucide-react";
+import { Mail, Phone, Send } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import CreateCustomerDialog from "@/components/CreateCustomerDialog";
 
 export default function CustomersPage() {
   const { data: customers = [] } = useCustomers();
-  const createCustomer = useCreateCustomer();
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", email: "" });
+  const sendCustomerMail = useSendCustomerMail();
 
-  const handleSubmit = () => {
-    createCustomer.mutate(form, {
+  const handleSendMail = (customerId: string) => {
+    sendCustomerMail.mutate(customerId, {
       onSuccess: () => {
-        toast.success("Customer created");
-        setOpen(false);
-        setForm({ name: "", phone: "", email: "" });
+        toast.success("Mail sent successfully");
+      },
+      onError: () => {
+        toast.error("Failed to send mail");
       },
     });
   };
@@ -29,27 +25,7 @@ export default function CustomersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-foreground">Customers</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 rounded-xl"><Plus size={16} /> Add Customer</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>New Customer</DialogTitle></DialogHeader>
-            <div className="grid gap-4 py-4">
-              {[
-                { key: "name", label: "Name" },
-                { key: "phone", label: "Phone" },
-                { key: "email", label: "Email" },
-              ].map(({ key, label }) => (
-                <div key={key} className="grid grid-cols-4 items-center gap-4">
-                  <Label className="text-right">{label}</Label>
-                  <Input className="col-span-3" value={form[key as keyof typeof form]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
-                </div>
-              ))}
-            </div>
-            <Button onClick={handleSubmit} disabled={createCustomer.isPending}>Create</Button>
-          </DialogContent>
-        </Dialog>
+        <CreateCustomerDialog triggerLabel="Add Customer" triggerClassName="gap-2 rounded-xl" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -74,6 +50,14 @@ export default function CustomersPage() {
               <span className="text-xs text-muted-foreground">Total Spent</span>
               <span className="text-sm font-bold text-foreground">${c.totalSpent.toLocaleString()}</span>
             </div>
+            <Button
+              className="mt-4 w-full gap-2 rounded-xl"
+              onClick={() => handleSendMail(c.id)}
+              disabled={sendCustomerMail.isPending && sendCustomerMail.variables === c.id}
+            >
+              <Send size={14} />
+              {sendCustomerMail.isPending && sendCustomerMail.variables === c.id ? "Sending..." : "Send Email"}
+            </Button>
           </div>
         ))}
       </div>

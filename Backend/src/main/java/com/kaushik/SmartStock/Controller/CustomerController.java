@@ -2,11 +2,14 @@ package com.kaushik.SmartStock.Controller;
 
 import com.kaushik.SmartStock.Documents.Customer;
 import com.kaushik.SmartStock.Service.CustomerService;
+import com.kaushik.SmartStock.Service.EmailService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/customer")
@@ -14,6 +17,8 @@ import java.util.List;
 public class CustomerController {
 
     private final CustomerService customerService;
+
+    private final EmailService emailService;
 
     @PostMapping()
     public ResponseEntity<String> createCustomer(
@@ -63,4 +68,23 @@ public class CustomerController {
         return ResponseEntity.ok("customer deleted successfully");
     }
 
+    @PostMapping("/{id}/sendMail")
+    public ResponseEntity<String> sendEmail(@PathVariable String id) {
+
+        Optional<Customer> optionalCustomer = customerService.getCustomerById(id);
+
+        if (optionalCustomer.isEmpty()) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("Customer not found");
+        }
+
+        Customer customer = optionalCustomer.get();
+
+        emailService.sendEmails(
+                customer.getEmail(),
+                customer.getName());
+
+        return ResponseEntity.ok("Mail sent successfully");
+    }
 }

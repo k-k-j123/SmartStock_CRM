@@ -14,6 +14,25 @@ export function useCustomers() {
   });
 }
 
+export function useCustomerByPhone(phone: string, enabled = true) {
+  return useQuery({
+    queryKey: ["customers", "phone", phone],
+    enabled: enabled && Boolean(phone),
+    retry: false,
+    queryFn: async () => {
+      if (USE_MOCK) {
+        const customer = mockCustomers.find((entry) => entry.phone === phone);
+        if (!customer) {
+          throw new Error("API error: 404");
+        }
+        return customer;
+      }
+
+      return customerApi.getByPhone(phone);
+    },
+  });
+}
+
 export function useCreateCustomer() {
   const qc = useQueryClient();
   return useMutation({
@@ -24,6 +43,14 @@ export function useCreateCustomer() {
         }
       : customerApi.create,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+  });
+}
+
+export function useSendCustomerMail() {
+  return useMutation({
+    mutationFn: USE_MOCK
+      ? async (id: string) => `mock mail sent to ${id}`
+      : customerApi.sendMail,
   });
 }
 
@@ -98,7 +125,11 @@ export function useCreateSale() {
           return sale;
         }
       : salesApi.create,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["sales"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+    },
   });
 }
 

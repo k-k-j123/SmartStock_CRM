@@ -3,8 +3,8 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 
 load_dotenv()
-
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+#mongodb+srv://joshikaushik419:kkj123@cluster0.oftyv.mongodb.net/smartstock"
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://joshikaushik419:kkj123@cluster0.oftyv.mongodb.net/smartstock")
 DATABASE_NAME = "smartstock"
 
 client = MongoClient(MONGO_URI)

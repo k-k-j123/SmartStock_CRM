@@ -7,7 +7,9 @@ from app.database import get_collection
 
 load_dotenv()
 
-SERP_API_KEY = "<API_KEY>"
+SERP_API_KEY = os.getenv("SERP_API_KEY")
+if not SERP_API_KEY:
+    raise RuntimeError("SERP_API_KEY is not set")
 SERP_BASE_URL = "https://serpapi.com/search.json"
 
 CATEGORIES = {

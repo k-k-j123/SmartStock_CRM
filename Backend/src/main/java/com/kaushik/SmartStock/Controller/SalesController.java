@@ -33,6 +33,14 @@ public class SalesController {
         return ResponseEntity.ok(responses);
     }
 
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<List<SaleResponse>> getSalesByCustomerId(@PathVariable String customerId) {
+        List<SaleResponse> responses = salesService.getSalesByCustomerId(customerId).stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<SaleResponse> getSaleById(@PathVariable String id) {
         return salesService.getSaleById(id)

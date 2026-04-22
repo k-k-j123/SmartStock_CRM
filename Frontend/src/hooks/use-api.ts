@@ -109,6 +109,16 @@ export function useSales() {
   });
 }
 
+export function useSalesByCustomer(customerId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["sales", "customer", customerId],
+    enabled: enabled && Boolean(customerId),
+    queryFn: USE_MOCK
+      ? () => Promise.resolve(mockSales.filter((sale) => sale.customerId === customerId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+      : () => salesApi.getByCustomerId(customerId),
+  });
+}
+
 export function useCreateSale() {
   const qc = useQueryClient();
   return useMutation({

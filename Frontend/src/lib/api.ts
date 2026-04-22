@@ -118,6 +118,7 @@ export const productApi = {
 // Sales API
 export const salesApi = {
   getAll: () => apiFetch<Sale[]>(`${API_BASE}/api/sales`),
+  getByCustomerId: (customerId: string) => apiFetch<Sale[]>(`${API_BASE}/api/sales/customer/${customerId}`),
   create: (data: CreateSaleRequest) =>
     apiFetch<Sale>(`${API_BASE}/api/sales`, { method: "POST", body: JSON.stringify(data) }),
   delete: (id: string) =>

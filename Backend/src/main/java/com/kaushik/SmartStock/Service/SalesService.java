@@ -91,6 +91,10 @@ public class SalesService {
         return salesRepository.findAll();
     }
 
+    public List<Sales> getSalesByCustomerId(String customerId) {
+        return salesRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
+    }
+
     public Optional<Sales> getSaleById(String id) {
         return salesRepository.findById(id);
     }

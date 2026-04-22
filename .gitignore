@@ -1,0 +1,37 @@
+# IDE and editor files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.factorypath
+.metadata/
+.codex
+# Environment files
+.env
+.env.*
+!.env.example
+Backend/.env
+Backend/.env.*
+AI-Service/.env
+AI-Service/.env.*
+!Backend/.env.example
+!AI-Service/.env.example
+
+# Build outputs
+Backend/target/
+Frontend/dist/
+Frontend/node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+

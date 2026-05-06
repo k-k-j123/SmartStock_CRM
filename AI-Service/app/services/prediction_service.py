@@ -20,41 +20,37 @@ def get_restock_suggestions():
                 "date": sale.get("createdAt")
             })
     
-    if not items:
-        return []
-    
-    df = pd.DataFrame(items)
-    
-    # Calculate daily average demand for each product
-    demand_df = df.groupby("productId").agg({"quantity": "sum"}).reset_index()
-    demand_df["dailyDemand"] = demand_df["quantity"] / 14.0
-    demand_df["predictedDemand_7days"] = demand_df["dailyDemand"] * 7
+    demand_by_product = {}
+    if items:
+        df = pd.DataFrame(items)
+
+        # Calculate daily average demand for each product
+        demand_df = df.groupby("productId").agg({"quantity": "sum"}).reset_index()
+        demand_df["dailyDemand"] = demand_df["quantity"] / 14.0
+        demand_df["predictedDemand_7days"] = demand_df["dailyDemand"] * 7
+        demand_by_product = {
+            row["productId"]: math.ceil(row["predictedDemand_7days"])
+            for _, row in demand_df.iterrows()
+        }
     
     suggestions = []
-    # Cross check with current products and their stock
-    for _, row in demand_df.iterrows():
-        product_id = row["productId"]
-        from bson import ObjectId
-        
-        # Try both string and ObjectId lookups
-        product_data = products_collection.find_one({"_id": product_id})
-        if not product_data:
-            try:
-                product_data = products_collection.find_one({"_id": ObjectId(product_id)})
-            except:
-                pass
-        
-        if product_data:
-            current_stock = product_data.get("stockQuantity", 0)
-            predicted_demand = math.ceil(row["predictedDemand_7days"])
-            
-            # Suggest restocking if demand exceeds current stock
-            if predicted_demand > current_stock:
-                suggestions.append({
-                    "product": product_data.get("name"),
-                    "currentStock": current_stock,
-                    "predictedDemand": predicted_demand,
-                    "suggestedOrder": predicted_demand - current_stock
-                })
+
+    # Include every product that is at or below its configured low-stock threshold,
+    # even when it has no recent sales data.
+    for product_data in products_collection.find({}):
+        product_id = str(product_data.get("_id"))
+        current_stock = product_data.get("stockQuantity", 0) or 0
+        low_stock_threshold = product_data.get("lowStockThreshold", 0) or 0
+        predicted_demand = demand_by_product.get(product_id, low_stock_threshold)
+
+        if current_stock <= low_stock_threshold or predicted_demand > current_stock:
+            target_stock = max(predicted_demand, low_stock_threshold)
+            suggested_order = max(target_stock - current_stock, 1)
+            suggestions.append({
+                "product": product_data.get("name"),
+                "currentStock": current_stock,
+                "predictedDemand": target_stock,
+                "suggestedOrder": suggested_order
+            })
                 
     return suggestions

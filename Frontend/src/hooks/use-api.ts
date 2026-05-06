@@ -46,6 +46,42 @@ export function useCreateCustomer() {
   });
 }
 
+export function useUpdateCustomer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: USE_MOCK
+      ? async ({ id, data }: { id: string; data: Partial<Customer> }) => {
+          const index = mockCustomers.findIndex((customer) => customer.id === id);
+          if (index < 0) {
+            throw new Error("Customer not found");
+          }
+          mockCustomers[index] = { ...mockCustomers[index], ...data };
+          return "updated";
+        }
+      : ({ id, data }: { id: string; data: Partial<Customer> }) => customerApi.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+  });
+}
+
+export function useDeleteCustomer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: USE_MOCK
+      ? async (id: string) => {
+          const index = mockCustomers.findIndex((customer) => customer.id === id);
+          if (index >= 0) {
+            mockCustomers.splice(index, 1);
+          }
+          return "deleted";
+        }
+      : customerApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["sales"] });
+    },
+  });
+}
+
 export function useSendCustomerMail() {
   return useMutation({
     mutationFn: USE_MOCK

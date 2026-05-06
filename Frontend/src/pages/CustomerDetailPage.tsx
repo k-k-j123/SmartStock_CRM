@@ -1,12 +1,24 @@
 import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-import { Mail, Phone, ArrowLeft, ReceiptText, CalendarClock, ShoppingBag } from "lucide-react";
+import { Mail, Phone, ArrowLeft, ReceiptText, CalendarClock, ShoppingBag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { useCustomers, useSalesByCustomer, useSendCustomerMail } from "@/hooks/use-api";
+import { useCustomers, useDeleteCustomer, useSalesByCustomer, useSendCustomerMail } from "@/hooks/use-api";
+import EditCustomerDialog from "@/components/EditCustomerDialog";
 
 export default function CustomerDetailPage() {
   const { id = "" } = useParams();
@@ -14,6 +26,7 @@ export default function CustomerDetailPage() {
   const { data: customers = [] } = useCustomers();
   const { data: sales = [] } = useSalesByCustomer(id);
   const sendCustomerMail = useSendCustomerMail();
+  const deleteCustomer = useDeleteCustomer();
 
   const customer = useMemo(() => customers.find((entry) => entry.id === id), [customers, id]);
   const lastSale = sales[0];
@@ -36,6 +49,16 @@ export default function CustomerDetailPage() {
     sendCustomerMail.mutate(customer.id, {
       onSuccess: () => toast.success("Mail sent successfully"),
       onError: () => toast.error("Failed to send mail"),
+    });
+  };
+
+  const handleDeleteCustomer = () => {
+    deleteCustomer.mutate(customer.id, {
+      onSuccess: () => {
+        toast.success("Customer deleted");
+        navigate("/customers");
+      },
+      onError: () => toast.error("Failed to delete customer"),
     });
   };
 
@@ -62,10 +85,42 @@ export default function CustomerDetailPage() {
               </div>
             </div>
           </div>
-          <Button className="gap-2 rounded-xl" onClick={handleSendMail} disabled={sendCustomerMail.isPending}>
-            <Mail size={14} />
-            {sendCustomerMail.isPending ? "Sending..." : "Send Email"}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <EditCustomerDialog customer={customer} />
+            <Button className="gap-2 rounded-xl" onClick={handleSendMail} disabled={sendCustomerMail.isPending}>
+              <Mail size={14} />
+              {sendCustomerMail.isPending ? "Sending..." : "Send Email"}
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="gap-2 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={deleteCustomer.isPending}
+                >
+                  <Trash2 size={14} />
+                  Delete Customer
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {customer.name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This removes the customer from the CRM. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleDeleteCustomer}
+                  >
+                    {deleteCustomer.isPending ? "Deleting..." : "Delete Customer"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </CardHeader>
       </Card>
 

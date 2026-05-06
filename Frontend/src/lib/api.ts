@@ -99,6 +99,8 @@ export const customerApi = {
     apiFetch<string>(`${API_BASE}/api/customer`, { method: "POST", body: JSON.stringify(data) }),
   update: (id: string, data: Partial<Customer>) =>
     apiFetch<string>(`${API_BASE}/api/customer/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    apiFetch<string>(`${API_BASE}/api/customer/${id}`, { method: "DELETE" }),
   sendMail: (id: string) =>
     apiFetch<string>(`${API_BASE}/api/customer/${id}/sendMail`, { method: "POST" }),
 };

@@ -15,6 +15,7 @@ type SelectedSaleItem = {
   productId: string;
   name: string;
   quantity: number;
+  sellingPrice: number;
   stockQuantity: number;
 };
 
@@ -115,6 +116,11 @@ export default function CreateSaleDialog({
       .slice(0, 8);
   }, [debouncedSearch, products]);
 
+  const billTotal = useMemo(
+    () => selectedItems.reduce((total, item) => total + item.sellingPrice * item.quantity, 0),
+    [selectedItems],
+  );
+
   const addProduct = (product: Product) => {
     setSelectedItems((current) => {
       const existingItem = current.find((item) => item.productId === product.id);
@@ -132,6 +138,7 @@ export default function CreateSaleDialog({
           productId: product.id,
           name: product.name,
           quantity: 1,
+          sellingPrice: product.sellingPrice,
           stockQuantity: product.stockQuantity,
         },
       ];
@@ -200,7 +207,7 @@ export default function CreateSaleDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart size={18} />
@@ -209,7 +216,7 @@ export default function CreateSaleDialog({
           <DialogDescription>Search by customer phone, add products, and submit the sale in one flow.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 md:grid-cols-[1.05fr_1.2fr]">
+        <div className="grid gap-6 md:grid-cols-[1.05fr_0.95fr]">
           <div className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="sale-customer-phone">Customer Phone</Label>
@@ -300,50 +307,89 @@ export default function CreateSaleDialog({
             </ScrollArea>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">Selected Items</h3>
-              <p className="text-sm text-muted-foreground">Adjust quantities before creating the sale.</p>
-            </div>
+          <div>
+            <div className="sticky top-4 rounded-2xl border border-border bg-background p-5 shadow-lg">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Bill Preview</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {customerForm.customerName.trim() || "Customer"} - {customerForm.customerPhone.trim() || "No phone"}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
+                  Rs {billTotal.toFixed(2)}
+                </div>
+              </div>
 
-            <div className="space-y-3">
-              {selectedItems.map((item) => (
-                <div key={item.productId} className="rounded-xl border border-border bg-background p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">Available stock: {item.stockQuantity}</p>
+              <div className="overflow-hidden rounded-xl border border-border">
+                <div className="grid grid-cols-[1fr_72px_88px] border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
+                  <span>Product</span>
+                  <span className="text-right">Qty</span>
+                  <span className="text-right">Amount</span>
+                </div>
+
+                {selectedItems.map((item) => (
+                  <div key={item.productId} className="border-b border-border p-3 last:border-0">
+                    <div className="grid grid-cols-[1fr_72px_88px] items-center gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Rs {item.sellingPrice.toFixed(2)} each - Stock {item.stockQuantity}
+                        </p>
+                      </div>
+
+                      <Input
+                        id={`quantity-${item.productId}`}
+                        type="number"
+                        min={1}
+                        max={item.stockQuantity}
+                        value={item.quantity}
+                        onChange={(event) => updateQuantity(item.productId, Number(event.target.value))}
+                        className="h-9 text-right"
+                        aria-label={`${item.name} quantity`}
+                      />
+
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-sm font-semibold text-foreground">
+                          Rs {(item.sellingPrice * item.quantity).toFixed(2)}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeItem(item.productId)}
+                          aria-label={`Remove ${item.name}`}
+                        >
+                          <Trash2 size={15} />
+                        </Button>
+                      </div>
                     </div>
-
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(item.productId)}>
-                      <Trash2 size={15} />
-                    </Button>
                   </div>
+                ))}
 
-                  <div className="mt-3 grid gap-2">
-                    <Label htmlFor={`quantity-${item.productId}`}>Quantity</Label>
-                    <Input
-                      id={`quantity-${item.productId}`}
-                      type="number"
-                      min={1}
-                      max={item.stockQuantity}
-                      value={item.quantity}
-                      onChange={(event) => updateQuantity(item.productId, Number(event.target.value))}
-                    />
+                {!selectedItems.length && (
+                  <div className="p-6 text-sm text-muted-foreground">
+                    Search for products and add them to build the bill.
                   </div>
-                </div>
-              ))}
+                )}
+              </div>
 
-              {!selectedItems.length && (
-                <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                  Search for products and add them to the sale.
+              <div className="mt-4 space-y-2 rounded-xl bg-muted p-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Items</span>
+                  <span className="font-medium text-foreground">{selectedItems.length}</span>
                 </div>
-              )}
+                <div className="flex items-center justify-between text-base font-bold">
+                  <span>Total Amount</span>
+                  <span>Rs {billTotal.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <Button onClick={handleSubmit} disabled={createSale.isPending} className="mt-4 w-full">
+                {createSale.isPending ? "Saving Sale..." : "OK - Save Sale"}
+              </Button>
             </div>
-
-            <Button onClick={handleSubmit} disabled={createSale.isPending} className="w-full">
-              {createSale.isPending ? "Creating Sale..." : "Create Sale"}
-            </Button>
           </div>
         </div>
       </DialogContent>

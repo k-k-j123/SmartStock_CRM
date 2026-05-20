@@ -1,10 +1,12 @@
-import { Search, Package, Users, Loader2 } from "lucide-react";
+import { Search, Package, Users, Loader2, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, useRef } from "react";
 import { searchApi, SearchResults } from "@/lib/api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
 
 export default function TopBar() {
   const [query, setQuery] = useState("");
@@ -14,6 +16,7 @@ export default function TopBar() {
   const debouncedQuery = useDebounce(query, 300);
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { adminEmail, logout } = useAuth();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -45,6 +48,11 @@ export default function TopBar() {
     setIsOpen(false);
     setQuery("");
     navigate(`/${type}/${id}`);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -115,6 +123,12 @@ export default function TopBar() {
             </div>
           ) : null}
         </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="hidden text-sm text-muted-foreground sm:inline">{adminEmail}</span>
+        <Button variant="ghost" size="icon" title="Log out" onClick={handleLogout}>
+          <LogOut className="h-4 w-4" />
+        </Button>
       </div>
     </header>
   );

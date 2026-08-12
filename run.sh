@@ -19,9 +19,9 @@ trap cleanup EXIT INT TERM
 
 echo "Starting All Services..."
 
-echo "Starting AI Service on port 8000..."
+echo "Starting Analytics Service on port 8000..."
 (
-  cd "$ROOT_DIR/AI-Service"
+  cd "$ROOT_DIR/Analytics-Service"
   source ~/python-venv/bin/activate
   uvicorn app.main:app --port 8000
 ) &
@@ -42,7 +42,7 @@ echo "Starting Frontend Service..."
 PIDS+=("$!")
 
 echo "All services started."
-echo "AI Service: http://localhost:8000"
+echo "Analytics Service: http://localhost:8000"
 echo "Frontend:   http://localhost:5173"
 echo "Press Ctrl+C to stop all services."
 

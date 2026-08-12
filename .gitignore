@@ -16,10 +16,9 @@
 !.env.example
 Backend/.env
 Backend/.env.*
-AI-Service/.env
-AI-Service/.env.*
-!Backend/.env.example
-!AI-Service/.env.example
+Analytics-Service/.env
+Analytics-Service/.env.*
+!Analytics-Service/.env.example
 
 # Build outputs
 Backend/target/

@@ -10,11 +10,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/customer")
 @RequiredArgsConstructor
 public class CustomerController {
+
+    private static final Pattern NAME_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z\\s'-]*[A-Za-z]$|^[A-Za-z]$");
 
     private final CustomerService customerService;
 
@@ -23,6 +26,10 @@ public class CustomerController {
     @PostMapping()
     public ResponseEntity<String> createCustomer(
             @RequestBody com.kaushik.SmartStock.DTO.CustomerRequest customerRequest) {
+        ResponseEntity<String> validationError = validateCustomerName(customerRequest.getName());
+        if (validationError != null) {
+            return validationError;
+        }
         Customer customer = new Customer();
         customer.setName(customerRequest.getName());
         customer.setPhone(customerRequest.getPhone());
@@ -53,6 +60,10 @@ public class CustomerController {
     @PutMapping("/{id}")
     public ResponseEntity<String> updateCustomer(@PathVariable String id,
             @RequestBody com.kaushik.SmartStock.DTO.CustomerRequest customerRequest) {
+        ResponseEntity<String> validationError = validateCustomerName(customerRequest.getName());
+        if (validationError != null) {
+            return validationError;
+        }
         Customer customer = new Customer();
         customer.setId(id);
         customer.setName(customerRequest.getName());
@@ -60,6 +71,20 @@ public class CustomerController {
         customer.setEmail(customerRequest.getEmail());
         customerService.createCustomer(customer);
         return ResponseEntity.ok("customer updated successfully");
+    }
+
+    private ResponseEntity<String> validateCustomerName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Name is required.");
+        }
+
+        String trimmed = name.trim();
+        if (!NAME_PATTERN.matcher(trimmed).matches()) {
+            return ResponseEntity.badRequest()
+                    .body("Name can only contain letters, spaces, apostrophes, and hyphens.");
+        }
+
+        return null;
     }
 
     @DeleteMapping("/{id}")

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useCreateCustomer } from "@/hooks/use-api";
+import { normalizePhone, validateEmail, validatePersonName, validatePhone } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -31,23 +32,34 @@ export default function CreateCustomerDialog({
   const createCustomer = useCreateCustomer();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<CustomerForm>(initialForm);
+  const [errors, setErrors] = useState<Partial<Record<keyof CustomerForm, string>>>({});
 
   useEffect(() => {
     if (!open) {
       setForm(initialForm);
+      setErrors({});
     }
   }, [open]);
 
   const handleSubmit = () => {
-    if (!form.name.trim() || !form.phone.trim()) {
-      toast.error("Name and phone are required");
+    const nextErrors: Partial<Record<keyof CustomerForm, string>> = {
+      name: validatePersonName(form.name, "Name"),
+      phone: validatePhone(form.phone),
+      email: validateEmail(form.email),
+    };
+    const activeErrors = Object.fromEntries(Object.entries(nextErrors).filter(([, message]) => message));
+
+    setErrors(activeErrors);
+
+    if (Object.keys(activeErrors).length) {
+      toast.error("Please fix the highlighted fields");
       return;
     }
 
     createCustomer.mutate(
       {
         name: form.name.trim(),
-        phone: form.phone.trim(),
+        phone: normalizePhone(form.phone),
         email: form.email.trim(),
       },
       {
@@ -86,18 +98,28 @@ export default function CreateCustomerDialog({
               id="customer-name"
               value={form.name}
               onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-              placeholder="Kavita"
+              placeholder="Name"
+              maxLength={80}
+              pattern="[A-Za-z][A-Za-z\s'-]*"
+              inputMode="text"
+              aria-invalid={Boolean(errors.name)}
             />
+            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="customer-phone">Phone</Label>
             <Input
               id="customer-phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               value={form.phone}
               onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-              placeholder="8073085190"
+              placeholder="1234567890"
+              aria-invalid={Boolean(errors.phone)}
             />
+            {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
           </div>
 
           <div className="grid gap-2">
@@ -108,7 +130,10 @@ export default function CreateCustomerDialog({
               value={form.email}
               onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
               placeholder="Optional"
+              autoComplete="email"
+              aria-invalid={Boolean(errors.email)}
             />
+            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
           </div>
         </div>
 

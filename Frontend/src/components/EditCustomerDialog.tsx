@@ -3,6 +3,7 @@ import { Pencil, UserRoundPen } from "lucide-react";
 import { toast } from "sonner";
 import { useUpdateCustomer } from "@/hooks/use-api";
 import type { Customer } from "@/lib/api";
+import { normalizePhone, validateEmail, validatePersonName, validatePhone } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ export default function EditCustomerDialog({ customer }: EditCustomerDialogProps
     phone: customer.phone,
     email: customer.email,
   });
+  const [errors, setErrors] = useState<Partial<Record<keyof CustomerForm, string>>>({});
 
   useEffect(() => {
     if (open) {
@@ -34,12 +36,22 @@ export default function EditCustomerDialog({ customer }: EditCustomerDialogProps
         phone: customer.phone,
         email: customer.email,
       });
+      setErrors({});
     }
   }, [customer, open]);
 
   const handleSubmit = () => {
-    if (!form.name.trim() || !form.phone.trim()) {
-      toast.error("Name and phone are required");
+    const nextErrors: Partial<Record<keyof CustomerForm, string>> = {
+      name: validatePersonName(form.name, "Name"),
+      phone: validatePhone(form.phone),
+      email: validateEmail(form.email),
+    };
+    const activeErrors = Object.fromEntries(Object.entries(nextErrors).filter(([, message]) => message));
+
+    setErrors(activeErrors);
+
+    if (Object.keys(activeErrors).length) {
+      toast.error("Please fix the highlighted fields");
       return;
     }
 
@@ -48,7 +60,7 @@ export default function EditCustomerDialog({ customer }: EditCustomerDialogProps
         id: customer.id,
         data: {
           name: form.name.trim(),
-          phone: form.phone.trim(),
+          phone: normalizePhone(form.phone),
           email: form.email.trim(),
         },
       },
@@ -89,17 +101,27 @@ export default function EditCustomerDialog({ customer }: EditCustomerDialogProps
               value={form.name}
               onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
               placeholder="Customer name"
+              maxLength={80}
+              pattern="[A-Za-z][A-Za-z\s'-]*"
+              inputMode="text"
+              aria-invalid={Boolean(errors.name)}
             />
+            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="edit-customer-phone">Phone</Label>
             <Input
               id="edit-customer-phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               value={form.phone}
               onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
               placeholder="Phone number"
+              aria-invalid={Boolean(errors.phone)}
             />
+            {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
           </div>
 
           <div className="grid gap-2">
@@ -110,7 +132,10 @@ export default function EditCustomerDialog({ customer }: EditCustomerDialogProps
               value={form.email}
               onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
               placeholder="Email address"
+              autoComplete="email"
+              aria-invalid={Boolean(errors.email)}
             />
+            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
           </div>
         </div>
 

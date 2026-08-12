@@ -4,7 +4,9 @@ import { toast } from "sonner";
 import { useCreateSale, useProducts } from "@/hooks/use-api";
 import { customerApi } from "@/lib/api";
 import type { Product } from "@/lib/api";
+import { normalizePhone, validatePhone, validateRequiredText } from "@/lib/validation";
 import { useDebounce } from "@/hooks/use-debounce";
+import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,7 @@ export default function CreateSaleDialog({
   const [selectedItems, setSelectedItems] = useState<SelectedSaleItem[]>([]);
   const [lookupState, setLookupState] = useState<"idle" | "loading" | "found" | "new">("idle");
   const [lookupMessage, setLookupMessage] = useState("");
+  const [errors, setErrors] = useState<Partial<Record<"customerPhone" | "customerName" | "items", string>>>({});
   const debouncedPhone = useDebounce(customerForm.customerPhone.trim(), 400);
   const debouncedSearch = useDebounce(searchTerm.trim().toLowerCase(), 200);
 
@@ -55,13 +58,14 @@ export default function CreateSaleDialog({
       setSelectedItems([]);
       setLookupState("idle");
       setLookupMessage("");
+      setErrors({});
     }
   }, [open]);
 
   useEffect(() => {
-    if (!debouncedPhone) {
+    if (!debouncedPhone || validatePhone(debouncedPhone)) {
       setLookupState("idle");
-      setLookupMessage("");
+      setLookupMessage(debouncedPhone ? "Enter a valid phone number to search for an existing customer." : "");
       return;
     }
 
@@ -70,7 +74,7 @@ export default function CreateSaleDialog({
     setLookupMessage("Searching customer by phone...");
 
     customerApi
-      .getByPhone(debouncedPhone)
+      .getByPhone(normalizePhone(debouncedPhone))
       .then((customer) => {
         if (!active) {
           return;
@@ -151,7 +155,7 @@ export default function CreateSaleDialog({
         item.productId === productId
           ? {
               ...item,
-              quantity: Math.max(1, Math.min(Number.isNaN(quantity) ? 1 : quantity, item.stockQuantity)),
+              quantity: Math.max(1, Math.min(Number.isNaN(quantity) ? 1 : Math.floor(quantity), item.stockQuantity)),
             }
           : item,
       ),
@@ -163,20 +167,31 @@ export default function CreateSaleDialog({
   };
 
   const handleSubmit = () => {
-    const customerPhone = customerForm.customerPhone.trim();
+    const customerPhone = normalizePhone(customerForm.customerPhone);
     const customerName = customerForm.customerName.trim();
     const items = selectedItems.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
     }));
 
-    if (!customerPhone || !customerName) {
-      toast.error("Customer phone and name are required");
-      return;
-    }
+    const invalidQuantity = selectedItems.find(
+      (item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > item.stockQuantity,
+    );
+    const nextErrors: Partial<Record<"customerPhone" | "customerName" | "items", string>> = {
+      customerPhone: validatePhone(customerForm.customerPhone),
+      customerName: validateRequiredText(customerForm.customerName, "Customer name"),
+      items: !items.length
+        ? "Add at least one product."
+        : invalidQuantity
+          ? `Quantity for ${invalidQuantity.name} must be between 1 and ${invalidQuantity.stockQuantity}.`
+          : "",
+    };
+    const activeErrors = Object.fromEntries(Object.entries(nextErrors).filter(([, message]) => message));
 
-    if (!items.length) {
-      toast.error("Add at least one product");
+    setErrors(activeErrors);
+
+    if (Object.keys(activeErrors).length) {
+      toast.error("Please fix the highlighted fields");
       return;
     }
 
@@ -229,8 +244,13 @@ export default function CreateSaleDialog({
                     customerPhone: event.target.value,
                   }))
                 }
-                placeholder="8073085190"
+                placeholder="1234567890"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                aria-invalid={Boolean(errors.customerPhone)}
               />
+              {errors.customerPhone && <p className="text-xs text-destructive">{errors.customerPhone}</p>}
             </div>
 
             <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
@@ -251,8 +271,11 @@ export default function CreateSaleDialog({
                     customerName: event.target.value,
                   }))
                 }
-                placeholder="Kavita"
+                placeholder="Name"
+                maxLength={80}
+                aria-invalid={Boolean(errors.customerName)}
               />
+              {errors.customerName && <p className="text-xs text-destructive">{errors.customerName}</p>}
             </div>
 
             <div className="grid gap-2">
@@ -282,7 +305,7 @@ export default function CreateSaleDialog({
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-foreground">{product.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {product.category} · Stock {product.stockQuantity} · Rs {product.sellingPrice.toFixed(2)}
+                          {product.category} · Stock {product.stockQuantity} · {formatCurrency(product.sellingPrice)}
                         </p>
                       </div>
                       <Button
@@ -317,7 +340,7 @@ export default function CreateSaleDialog({
                   </p>
                 </div>
                 <div className="rounded-lg bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
-                  Rs {billTotal.toFixed(2)}
+                  {formatCurrency(billTotal)}
                 </div>
               </div>
 
@@ -334,7 +357,7 @@ export default function CreateSaleDialog({
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          Rs {item.sellingPrice.toFixed(2)} each - Stock {item.stockQuantity}
+                          {formatCurrency(item.sellingPrice)} each - Stock {item.stockQuantity}
                         </p>
                       </div>
 
@@ -343,6 +366,7 @@ export default function CreateSaleDialog({
                         type="number"
                         min={1}
                         max={item.stockQuantity}
+                        step={1}
                         value={item.quantity}
                         onChange={(event) => updateQuantity(item.productId, Number(event.target.value))}
                         className="h-9 text-right"
@@ -350,9 +374,7 @@ export default function CreateSaleDialog({
                       />
 
                       <div className="flex items-center justify-end gap-1">
-                        <span className="text-sm font-semibold text-foreground">
-                          Rs {(item.sellingPrice * item.quantity).toFixed(2)}
-                        </span>
+                        <span className="text-sm font-semibold text-foreground">{formatCurrency(item.sellingPrice * item.quantity)}</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -374,6 +396,7 @@ export default function CreateSaleDialog({
                   </div>
                 )}
               </div>
+              {errors.items && <p className="mt-2 text-xs text-destructive">{errors.items}</p>}
 
               <div className="mt-4 space-y-2 rounded-xl bg-muted p-4">
                 <div className="flex items-center justify-between text-sm">
@@ -382,7 +405,7 @@ export default function CreateSaleDialog({
                 </div>
                 <div className="flex items-center justify-between text-base font-bold">
                   <span>Total Amount</span>
-                  <span>Rs {billTotal.toFixed(2)}</span>
+                  <span>{formatCurrency(billTotal)}</span>
                 </div>
               </div>
 

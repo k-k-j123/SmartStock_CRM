@@ -1,6 +1,6 @@
 # SmartStock CRM
 
-SmartStock CRM is a full-stack inventory and customer relationship management app for small retail workflows. It combines product and customer management, sales tracking, low-stock monitoring, customer purchase history, email outreach, search, and AI-assisted analytics.
+SmartStock CRM is a full-stack inventory and customer relationship management app for small retail workflows. It combines product and customer management, sales tracking, low-stock monitoring, customer purchase history, email outreach, search, and analytics.
 
 ## Project Structure
 
@@ -8,7 +8,7 @@ SmartStock CRM is a full-stack inventory and customer relationship management ap
 SmartStock_CRM/
 ├── Backend/      # Spring Boot API backed by MongoDB
 ├── Frontend/     # Vite + React + TypeScript dashboard
-├── AI-Service/   # FastAPI analytics and trending microservice
+├── Analytics-Service/   # FastAPI analytics and trending microservice
 ├── seed_backend.py
 ├── run.sh
 └── run.bat
@@ -18,7 +18,7 @@ SmartStock_CRM/
 
 - Frontend: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, React Query, Recharts
 - Backend: Java 21, Spring Boot, Spring Web MVC, Spring Data MongoDB, Spring Mail, OpenAPI UI
-- AI service: FastAPI, Uvicorn, PyMongo, Pandas, scikit-learn
+- Analytics service: FastAPI, Uvicorn, PyMongo, Pandas, scikit-learn
 - Database: MongoDB
 
 ## Features
@@ -29,7 +29,7 @@ SmartStock_CRM/
 - Sales creation with itemized baskets and automatic customer/product updates
 - Global search across products and customers
 - Email outreach endpoint for customer messages
-- AI analytics for best-selling products, restock suggestions, loyal customers, and trending products
+- Analytics for best-selling products, restock suggestions, loyal customers, and trending products
 - Seed script for demo customers, products, and sales
 
 ## Prerequisites
@@ -51,7 +51,7 @@ SPRING_MAIL_USERNAME=your_email@example.com
 SPRING_MAIL_PASSWORD=your_app_password
 ```
 
-Create the AI service environment file at `AI-Service/.env`:
+Create the analytics service environment file at `Analytics-Service/.env`:
 
 ```properties
 MONGO_URI=mongodb://localhost:27017/smartstock
@@ -85,7 +85,7 @@ The helper script starts:
 
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:8080`
-- AI service: `http://localhost:8000`
+- Analytics service: `http://localhost:8000`
 
 Note: `run.sh` expects a Python virtual environment at `~/python-venv`.
 
@@ -98,10 +98,10 @@ cd Backend
 ./mvnw spring-boot:run
 ```
 
-AI service:
+Analytics service:
 
 ```bash
-cd AI-Service
+cd Analytics-Service
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -168,7 +168,7 @@ Backend endpoints:
 - `DELETE /api/sales/{id}`
 - `GET /api/search?query=term`
 
-AI service endpoints:
+Analytics service endpoints:
 
 - `GET /analytics/best-products`
 - `GET /analytics/restock-suggestions`
@@ -209,8 +209,8 @@ npm run build
 
 ## Notes
 
-- MongoDB must be reachable by both the backend and AI service.
+- MongoDB must be reachable by both the backend and analytics service.
 - The backend reads environment variables from `.env` in the project root or `Backend/.env`.
-- The AI service reads `MONGO_URI` from `AI-Service/.env`.
+- The analytics service reads `MONGO_URI` from `Analytics-Service/.env`.
 - CORS is configured for localhost and private network development origins.
 - OpenAPI UI is available from the Spring backend when the app is running.
